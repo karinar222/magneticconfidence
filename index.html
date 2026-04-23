@@ -1,308 +1,23 @@
-import { useState } from "react";
-
-const BLOCKS = [
-  {
-    id: "inner_critic",
-    title: "The Inner Critic Block",
-    emoji: "🪞",
-    description: "How you talk to yourself in private moments",
-    tagline: "She overanalyzes herself and attacks her reflection.",
-    questions: [
-      {
-        q: "When you catch your reflection unexpectedly, what's your first instinct?",
-        options: [
-          "I immediately notice every flaw — it's automatic",
-          "I try to look away or fix something",
-          "I can see myself with some neutrality or kindness",
-        ],
-      },
-      {
-        q: "If a friend spoke to you the way you speak to yourself, what would you do?",
-        options: [
-          "I'd never allow it — but somehow I allow it from myself",
-          "I'd feel hurt but probably make excuses for them",
-          "Honestly, I'm learning to speak to myself with more grace",
-        ],
-      },
-    ],
-  },
-  {
-    id: "comparison",
-    title: "The Comparison Block",
-    emoji: "⚖️",
-    description: "How you measure your worth against other women",
-    tagline: "She measures her worth against other women.",
-    questions: [
-      {
-        q: "When you see a woman who's more successful, more beautiful, or more confident than you, how do you feel?",
-        options: [
-          "Instantly deflated — like I'm falling behind",
-          "A mix of inspired and inadequate",
-          "Genuinely happy for her — her shine doesn't dim mine",
-        ],
-      },
-      {
-        q: "Do you scroll social media and come away feeling better or worse about yourself?",
-        options: [
-          "Almost always worse — it's like a trap I keep walking into",
-          "Depends on the day, but it can really mess with my head",
-          "I've learned to curate my feed and it rarely affects me",
-        ],
-      },
-    ],
-  },
-  {
-    id: "people_pleasing",
-    title: "The People-Pleasing Block",
-    emoji: "🎭",
-    description: "How much you shrink to stay liked and approved",
-    tagline: "She shrinks to stay liked and approved.",
-    questions: [
-      {
-        q: "How often do you say yes when you mean no?",
-        options: [
-          "All the time — saying no feels dangerous or selfish",
-          "Regularly, especially with certain people",
-          "I've mostly learned to honor my boundaries without guilt",
-        ],
-      },
-      {
-        q: "When you're about to share your opinion or take up space, what happens inside?",
-        options: [
-          "I filter myself heavily — what will they think of me?",
-          "I share, but I'm always watching for disapproval",
-          "I trust myself to speak and let others receive it as they will",
-        ],
-      },
-    ],
-  },
-  {
-    id: "body_shame",
-    title: "The Body Shame Block",
-    emoji: "🌸",
-    description: "How you relate to your body and its presence",
-    tagline: "She feels trapped in judgment about her body.",
-    questions: [
-      {
-        q: "Do you put off living your fullest life until your body looks a certain way?",
-        options: [
-          "Yes — there are things I'm waiting to do until I'm 'ready'",
-          "Sometimes — I catch myself making my joy conditional",
-          "No — I've learned to live fully in the body I have now",
-        ],
-      },
-      {
-        q: "When you think about being seen — photographed, on video, in a crowd — what comes up?",
-        options: [
-          "Dread — I avoid it whenever I can",
-          "Anxiety that I manage, but it's always there",
-          "I can show up and be seen without my body being the main story",
-        ],
-      },
-    ],
-  },
-  {
-    id: "visibility",
-    title: "The Visibility Block",
-    emoji: "✨",
-    description: "How safe you feel being truly seen",
-    tagline: "She wants to be seen but fears being judged.",
-    questions: [
-      {
-        q: "When you imagine sharing something real and vulnerable about yourself publicly, what happens?",
-        options: [
-          "Fear floods in — what if they judge me, misunderstand me, or reject me?",
-          "I want to, but I water it down to stay safe",
-          "I feel nervous but I do it anyway — visibility is a practice for me",
-        ],
-      },
-      {
-        q: "What's your relationship with receiving compliments, attention, or praise?",
-        options: [
-          "I deflect, minimize, or feel like I don't deserve it",
-          "I appreciate it but often wonder if they really mean it",
-          "I can receive it with gratitude — I'm learning to let it land",
-        ],
-      },
-    ],
-  },
-];
-
-const SCORE_MAP = [0, 1, 2];
-
-function ProgressRing({ percent, size = 180 }) {
-  const r = (size - 16) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (percent / 100) * circ;
-  return (
-    <svg width={size} height={size}>
-      <defs>
-        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3f2a4d" />
-          <stop offset="100%" stopColor="#b7a6c8" />
-        </linearGradient>
-      </defs>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e8e1f0" strokeWidth="7" />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="url(#ringGrad)" strokeWidth="7"
-        strokeDasharray={circ} strokeDashoffset={offset}
-        strokeLinecap="round"
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: "stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)" }}
-      />
-      <text x="50%" y="44%" textAnchor="middle" fill="#3f2a4d" fontSize="38" fontFamily="'Playfair Display', serif" fontWeight="600">
-        {percent}%
-      </text>
-      <text x="50%" y="60%" textAnchor="middle" fill="#b7a6c8" fontSize="9" fontFamily="'DM Sans', sans-serif" letterSpacing="3" fontWeight="500">
-        UNBLOCKED
-      </text>
-    </svg>
-  );
-}
-
-function BlockBar({ label, emoji, score, max }) {
-  const pct = Math.round((score / max) * 100);
-  // Higher score = MORE unblocked (better). Lower score = more blocked.
-  const getStatus = () => {
-    if (pct >= 70) return { label: "Mostly Unblocked", color: "#3f2a4d", bg: "#ede8f4" };
-    if (pct >= 40) return { label: "Partially Blocked", color: "#7a5e8f", bg: "#e8e1f0" };
-    return { label: "Strong Block", color: "#5c3d6e", bg: "#d9cfe8" };
-  };
-  const status = getStatus();
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#3f2a4d", fontWeight: 500 }}>
-          {emoji} {label}
-        </span>
-        <span style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: 11,
-          color: status.color, background: status.bg,
-          padding: "3px 10px", borderRadius: 20, fontWeight: 500,
-        }}>
-          {status.label}
-        </span>
-      </div>
-      <div style={{ height: 6, background: "#e8e1f0", borderRadius: 20, overflow: "hidden" }}>
-        <div style={{
-          height: "100%", width: `${pct}%`,
-          background: `linear-gradient(90deg, ${status.color}, ${status.color}99)`,
-          borderRadius: 20, transition: "width 1s cubic-bezier(0.4,0,0.2,1)",
-        }} />
-      </div>
-    </div>
-  );
-}
-
-export default function MagneticConfidenceQuiz() {
-  const [phase, setPhase] = useState("welcome");
-  const [currentBlock, setCurrentBlock] = useState(0);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [animating, setAnimating] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-
-  const totalQuestions = BLOCKS.reduce((a, b) => a + b.questions.length, 0);
-  const answeredCount = Object.keys(answers).length;
-
-  const handleAnswer = (blockIdx, questionIdx, optionIdx) => {
-    const key = `${blockIdx}-${questionIdx}`;
-    setAnswers((prev) => ({ ...prev, [key]: optionIdx }));
-    setAnimating(true);
-    setTimeout(() => {
-      setAnimating(false);
-      if (questionIdx < BLOCKS[blockIdx].questions.length - 1) {
-        setCurrentQuestion(questionIdx + 1);
-      } else if (blockIdx < BLOCKS.length - 1) {
-        setCurrentBlock(blockIdx + 1);
-        setCurrentQuestion(0);
-      } else {
-        setPhase("results");
-        setTimeout(() => setShowResults(true), 100);
-      }
-    }, 350);
-  };
-
-  const calcScores = () => {
-    const blockScores = BLOCKS.map((block, bIdx) => {
-      let total = 0;
-      block.questions.forEach((_, qIdx) => {
-        total += SCORE_MAP[answers[`${bIdx}-${qIdx}`] ?? 0];
-      });
-      return { ...block, score: total, max: block.questions.length * 2 };
-    });
-    const totalScore = blockScores.reduce((a, s) => a + s.score, 0);
-    const totalMax = blockScores.reduce((a, s) => a + s.max, 0);
-    return { blockScores, percent: Math.round((totalScore / totalMax) * 100) };
-  };
-
-  const getPrimaryBlock = (blockScores) =>
-    [...blockScores].sort((a, b) => a.score / a.max - b.score / b.max)[0];
-
-  const getVerdict = (percent) => {
-    if (percent >= 75)
-      return {
-        title: "She's Emerging — Your Confidence Is Awakening ✦",
-        body: "You've done real inner work and it shows. Most of your blocks have lost their grip. What's left is refinement — not rebuilding. You're already magnetic. You're learning to trust that it's safe to be fully seen.",
-        cta: "Your next step → Stop dimming yourself. The world is ready for the unfiltered version of you.",
-      };
-    if (percent >= 45)
-      return {
-        title: "She's Stirring — You're Closer Than You Know ◇",
-        body: "You have real awareness and glimpses of your power, but there are one or two blocks that keep pulling you back before you can fully land in your confidence. You don't need to start over — you need to name the block and move through it.",
-        cta: "Your next step → Identify your primary block and do the inner work to shift it. You're almost there.",
-      };
-    return {
-      title: "She's Waiting — Your Magnetism Is Buried, Not Gone ✧",
-      body: "Your confidence isn't missing — it's buried under layers of old stories, other people's voices, and protective patterns that once kept you safe. The work ahead isn't about becoming someone new. It's about coming home to who you already are.",
-      cta: "Your next step → Begin with the block that's loudest and work inward. Your identity is ready to shift.",
-    };
-  };
-
-  const getShifts = (blockId) => {
-    const shifts = {
-      inner_critic: [
-        "Start a 'mirror practice' — look at yourself and find one thing to appreciate, daily",
-        "When your inner critic speaks, ask: 'Whose voice is this really?'",
-        "Journal the story you've been telling about yourself — then write the truer version",
-      ],
-      comparison: [
-        "Audit your feed: unfollow accounts that consistently make you feel small",
-        "Practice 'her win is not my loss' — celebrate one woman publicly this week",
-        "Define your own metrics of success — not borrowed ones from someone else's life",
-      ],
-      people_pleasing: [
-        "Practice one small no this week — and don't over-explain it",
-        "Notice the moment you're about to shrink and pause. Ask: what do I actually want?",
-        "Identify the relationship or context where you people-please most — and get curious about why",
-      ],
-      body_shame: [
-        "Move your body in a way that feels joyful, not punishing — for 10 minutes today",
-        "Write a letter to your body thanking it for what it does, not what it looks like",
-        "Do one thing you've been postponing until your body 'looks right' — do it now",
-      ],
-      visibility: [
-        "Share one real, unfiltered thought publicly this week — no watering it down",
-        "The next time someone compliments you, just say 'thank you' and let it land",
-        "Identify one way you've been making yourself smaller — and choose differently tomorrow",
-      ],
-    };
-    return shifts[blockId] || [];
-  };
-
-  const block = BLOCKS[currentBlock];
-  const question = block?.questions[currentQuestion];
-
-  const styles = `
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600&display=swap');
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What's Blocking Your Magnetic Confidence?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'DM Sans', sans-serif;
@@ -310,6 +25,7 @@ export default function MagneticConfidenceQuiz() {
       min-height: 100vh;
     }
 
+    /* ── TOP BAR ── */
     .top-bar {
       background: #3f2a4d;
       padding: 14px 24px;
@@ -322,7 +38,7 @@ export default function MagneticConfidenceQuiz() {
       background: rgba(183,166,200,0.25);
       border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
+      font-size: 14px; color: #f6f1eb;
     }
     .top-bar-title {
       font-family: 'DM Sans', sans-serif;
@@ -333,16 +49,18 @@ export default function MagneticConfidenceQuiz() {
       font-style: italic; font-weight: 500;
     }
 
+    /* ── LAYOUT ── */
     .container {
       max-width: 640px;
       margin: 0 auto;
       padding: 28px 20px 40px;
     }
 
+    /* ── PAGE HEADER ── */
     .page-header {
       text-align: center;
       margin-bottom: 24px;
-      animation: fadeUp 0.6s ease-out;
+      animation: fadeUp 0.6s ease-out both;
     }
     .page-label {
       font-size: 11px; letter-spacing: 3px;
@@ -360,13 +78,15 @@ export default function MagneticConfidenceQuiz() {
       margin-top: 6px; font-weight: 400;
     }
 
+    /* ── CARD ── */
     .card {
       background: #ffffff;
       border-radius: 16px; padding: 32px 28px;
       box-shadow: 0 1px 3px rgba(63,42,77,0.07), 0 8px 24px rgba(63,42,77,0.05);
-      animation: fadeUp 0.5s ease-out;
+      animation: fadeUp 0.5s ease-out both;
     }
 
+    /* ── WELCOME ── */
     .promise-box {
       background: linear-gradient(135deg, #f6f1eb, #ede8f4);
       border: 1.5px solid #d9cfe8;
@@ -380,42 +100,41 @@ export default function MagneticConfidenceQuiz() {
       font-size: 15px; font-style: italic;
       color: #3f2a4d; line-height: 1.6;
     }
+    .welcome-intro {
+      font-size: 15px; line-height: 1.75;
+      color: #4e3560; text-align: center; margin-bottom: 28px;
+    }
+    .welcome-intro strong { color: #3f2a4d; font-weight: 600; }
 
-    .section-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: #ede8f4; border-radius: 20px;
-      padding: 6px 14px; margin-bottom: 8px;
+    .block-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 28px;
     }
-    .section-badge-text { font-size: 13px; font-weight: 500; color: #3f2a4d; }
-    .section-desc { font-size: 13px; color: #8a7496; margin-bottom: 24px; }
-
-    .q-counter {
-      font-size: 11px; letter-spacing: 2px;
-      color: #b7a6c8; text-transform: uppercase;
-      margin-bottom: 10px; font-weight: 500;
+    .block-chip {
+      text-align: center; padding: 16px 12px;
+      background: #faf8f5; border: 1.5px solid #d9cfe8; border-radius: 12px;
     }
-    .q-text {
-      font-family: 'Playfair Display', serif;
-      font-size: 19px; font-weight: 400;
-      line-height: 1.5; color: #3f2a4d; margin-bottom: 24px;
-    }
-
-    .option-btn {
-      display: block; width: 100%; text-align: left;
-      padding: 16px 20px; margin-bottom: 10px;
-      background: #faf8f5;
-      border: 1.5px solid #d9cfe8;
-      border-radius: 12px; color: #4e3560;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px; font-weight: 400;
-      cursor: pointer; transition: all 0.25s ease; line-height: 1.45;
-    }
-    .option-btn:hover {
-      background: #ede8f4; border-color: #b7a6c8;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(63,42,77,0.10);
+    .block-chip-emoji { font-size: 20px; margin-bottom: 4px; }
+    .block-chip-label {
+      font-family: 'DM Sans', sans-serif; font-size: 12px;
+      color: #3f2a4d; font-weight: 500; line-height: 1.3;
     }
 
+    /* ── BUTTONS ── */
+    .begin-btn {
+      display: block; width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #3f2a4d 0%, #7a5e8f 100%);
+      border: none; border-radius: 12px; color: #f6f1eb;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+      cursor: pointer; text-align: center;
+      transition: all 0.25s ease; letter-spacing: 0.3px;
+    }
+    .begin-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(63,42,77,0.30);
+    }
+
+    /* ── PROGRESS ── */
     .progress-row {
       display: flex; align-items: center;
       justify-content: space-between; margin-bottom: 6px;
@@ -435,101 +154,42 @@ export default function MagneticConfidenceQuiz() {
       transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
     }
 
-    .welcome-intro {
-      font-size: 15px; line-height: 1.75;
-      color: #4e3560; text-align: center; margin-bottom: 28px;
+    /* ── QUIZ CARD ── */
+    .section-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #ede8f4; border-radius: 20px;
+      padding: 6px 14px; margin-bottom: 8px;
     }
-    .welcome-intro strong { color: #3f2a4d; font-weight: 600; }
-
-    .block-grid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 10px; margin-bottom: 28px;
+    .section-badge-text { font-size: 13px; font-weight: 500; color: #3f2a4d; }
+    .section-desc { font-size: 13px; color: #8a7496; margin-bottom: 24px; }
+    .q-counter {
+      font-size: 11px; letter-spacing: 2px;
+      color: #b7a6c8; text-transform: uppercase;
+      margin-bottom: 10px; font-weight: 500;
     }
-    .block-chip {
-      text-align: center; padding: 16px 12px;
-      background: #faf8f5; border: 1.5px solid #d9cfe8; border-radius: 12px;
+    .q-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 19px; font-weight: 400;
+      line-height: 1.5; color: #3f2a4d; margin-bottom: 24px;
     }
-    .block-chip-emoji { font-size: 20px; margin-bottom: 4px; }
-    .block-chip-label { font-family: 'DM Sans', sans-serif; font-size: 12px; color: #3f2a4d; font-weight: 500; line-height: 1.3; }
-
-    .begin-btn {
-      display: block; width: 100%; padding: 16px;
-      background: linear-gradient(135deg, #3f2a4d 0%, #7a5e8f 100%);
-      border: none; border-radius: 12px; color: #f6f1eb;
-      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
-      cursor: pointer; text-align: center; text-decoration: none;
-      transition: all 0.25s ease; letter-spacing: 0.3px;
-    }
-    .begin-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(63,42,77,0.30);
-    }
-
-    .cta-wrapper {
-      margin-top: 24px;
-      animation: fadeUp 0.6s 0.7s ease-out both;
-      border-radius: 20px;
-      overflow: hidden;
-      position: relative;
-      cursor: pointer;
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-    .cta-wrapper:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 40px rgba(63,42,77,0.35);
-    }
-    .cta-bg {
-      background: radial-gradient(ellipse at 30% 40%, #c4afc8 0%, #9e88ab 35%, #7a6488 60%, #4e3560 100%);
-      padding: 40px 28px 36px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      border: none;
-      width: 100%;
-      display: block;
-    }
-    .cta-bubble {
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(246,241,235,0.12);
-      border: 1px solid rgba(246,241,235,0.18);
-    }
-    .cta-eyebrow {
+    .option-btn {
+      display: block; width: 100%; text-align: left;
+      padding: 16px 20px; margin-bottom: 10px;
+      background: #faf8f5;
+      border: 1.5px solid #d9cfe8;
+      border-radius: 12px; color: #4e3560;
       font-family: 'DM Sans', sans-serif;
-      font-size: 11px; letter-spacing: 3px;
-      text-transform: uppercase;
-      color: rgba(246,241,235,0.7);
-      margin-bottom: 16px;
-      font-weight: 400;
+      font-size: 14px; font-weight: 400;
+      cursor: pointer; transition: all 0.25s ease; line-height: 1.45;
     }
-    .cta-headline {
-      font-family: 'Cormorant Garamond', 'Playfair Display', serif;
-      font-size: 32px;
-      font-weight: 300;
-      font-style: italic;
-      color: #f6f1eb;
-      line-height: 1.25;
-      margin-bottom: 20px;
-      text-shadow: 0 0 40px rgba(246,241,235,0.3);
-      letter-spacing: 0.5px;
+    .option-btn:hover {
+      background: #ede8f4; border-color: #b7a6c8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(63,42,77,0.10);
     }
-    .cta-inner-btn {
-      display: inline-block;
-      padding: 12px 28px;
-      border: 1.5px solid rgba(246,241,235,0.6);
-      border-radius: 40px;
-      color: #f6f1eb;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px; font-weight: 400;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      background: rgba(246,241,235,0.08);
-      transition: background 0.2s ease;
-    }
-    .cta-wrapper:hover .cta-inner-btn {
-      background: rgba(246,241,235,0.18);
-    }
+    .option-btn.disabled { pointer-events: none; opacity: 0.5; }
 
+    /* ── RESULTS ── */
     .results-ring { display: flex; justify-content: center; margin-bottom: 28px; }
 
     .verdict-card {
@@ -569,6 +229,10 @@ export default function MagneticConfidenceQuiz() {
       font-size: 16px; color: #3f2a4d;
       margin-bottom: 14px; font-weight: 500;
     }
+    .shift-tagline {
+      font-size: 13px; color: #7a5e8f; margin-bottom: 14px;
+      font-style: italic; font-family: 'Playfair Display', serif;
+    }
     .shift-item {
       display: flex; gap: 12px; align-items: flex-start;
       margin-bottom: 12px; font-size: 13px;
@@ -579,8 +243,89 @@ export default function MagneticConfidenceQuiz() {
       border-radius: 50%; display: flex;
       align-items: center; justify-content: center;
       font-size: 11px; color: #7a5e8f; font-weight: 600; flex-shrink: 0;
+      min-width: 22px;
     }
 
+    /* ── CTA CARD ── */
+    .cta-wrapper {
+      margin-top: 24px;
+      animation: fadeUp 0.6s 0.7s ease-out both;
+      border-radius: 20px;
+      overflow: hidden;
+      display: block;
+      text-decoration: none;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .cta-wrapper:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(63,42,77,0.35);
+    }
+    .cta-bg {
+      background: radial-gradient(ellipse at 30% 40%, #c4afc8 0%, #9e88ab 35%, #7a6488 60%, #4e3560 100%);
+      padding: 40px 28px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(246,241,235,0.12);
+      border: 1px solid rgba(246,241,235,0.18);
+      pointer-events: none;
+    }
+    .cta-eyebrow {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(246,241,235,0.7);
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .cta-headline {
+      font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+      font-size: 42px;
+      font-weight: 300;
+      font-style: italic;
+      color: #f6f1eb;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      text-shadow: 0 0 40px rgba(246,241,235,0.3);
+      letter-spacing: 0.5px;
+      position: relative;
+    }
+    .cta-sub {
+      font-size: 13px; color: rgba(246,241,235,0.75);
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 1px; margin-bottom: 24px;
+      position: relative;
+    }
+    .cta-inner-btn {
+      display: inline-block;
+      padding: 13px 32px;
+      border: 1.5px solid rgba(246,241,235,0.6);
+      border-radius: 40px;
+      color: #f6f1eb;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 400;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: rgba(246,241,235,0.08);
+      transition: background 0.2s ease;
+      position: relative;
+    }
+    .cta-wrapper:hover .cta-inner-btn {
+      background: rgba(246,241,235,0.18);
+    }
+    .cta-step {
+      margin-top: 14px; font-size: 11px;
+      color: rgba(246,241,235,0.5);
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 2px; text-transform: uppercase;
+      position: relative;
+    }
+
+    /* ── RESTART ── */
     .restart-btn {
       display: block; margin: 16px auto 0;
       padding: 10px 24px; background: none;
@@ -591,170 +336,490 @@ export default function MagneticConfidenceQuiz() {
     }
     .restart-btn:hover { border-color: #b7a6c8; background: #faf8f5; }
 
+    /* ── FOOTER ── */
     .footer { text-align: center; margin-top: 28px; }
     .footer-name {
       font-family: 'Playfair Display', serif;
       font-size: 14px; font-style: italic; color: #7a5e8f;
     }
     .footer-sub { font-size: 11px; color: #b7a6c8; margin-top: 2px; letter-spacing: 1px; }
-  `;
 
-  if (phase === "welcome") {
-    return (
-      <>
-        <style>{styles}</style>
-        <div className="top-bar">
-          <div className="top-bar-icon">✦</div>
-          <div className="top-bar-title"><em>Magnetic Confidence</em> Quiz</div>
+    /* ── HIDDEN PHASES ── */
+    .phase { display: none; }
+    .phase.active { display: block; animation: fadeIn 0.35s ease-out both; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  WELCOME PHASE                              -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="phase-welcome" class="phase active">
+  <div class="top-bar">
+    <div class="top-bar-icon">✦</div>
+    <div class="top-bar-title"><em>Magnetic Confidence</em> Quiz</div>
+  </div>
+  <div class="container">
+    <div class="page-header">
+      <div class="page-label">Free Quiz</div>
+      <h1 class="page-title">What's Blocking Your<br /><em>Magnetic Confidence?</em></h1>
+      <div class="page-subtitle">Discover what's keeping you from your next identity in under 3 minutes</div>
+    </div>
+    <div class="card">
+      <div class="promise-box">
+        <div class="promise-text">
+          "Discover what's keeping you from embodied, magnetic confidence so you can finally shift into your next identity."
         </div>
-        <div className="container">
-          <div className="page-header">
-            <div className="page-label">Free Quiz</div>
-            <h1 className="page-title">What's Blocking Your<br /><em>Magnetic Confidence?</em></h1>
-            <div className="page-subtitle">Discover what's keeping you from your next identity in under 3 minutes</div>
-          </div>
-          <div className="card">
-            <div className="promise-box">
-              <div className="promise-text">
-                "Discover what's keeping you from embodied, magnetic confidence so you can finally shift into your next identity."
-              </div>
-            </div>
-            <p className="welcome-intro">
-              Your confidence isn't broken.<br />
-              It's <strong>blocked.</strong><br /><br />
-              This quiz identifies which of the <strong>5 confidence blocks</strong> is holding you back the most — so you can finally stop guessing and start shifting.
-            </p>
-            <div className="block-grid">
-              {BLOCKS.map((b) => (
-                <div key={b.id} className="block-chip">
-                  <div className="block-chip-emoji">{b.emoji}</div>
-                  <div className="block-chip-label">{b.title}</div>
-                </div>
-              ))}
-            </div>
-            <button className="begin-btn" onClick={() => setPhase("quiz")}>Discover My Block ✦</button>
-          </div>
-          <div className="footer">
-            <div className="footer-name">Magnetic Confidence</div>
-            <div className="footer-sub">YOUR NEXT IDENTITY AWAITS</div>
-          </div>
-        </div>
-      </>
-    );
+      </div>
+      <p class="welcome-intro">
+        Your confidence isn't broken.<br />
+        It's <strong>blocked.</strong><br /><br />
+        This quiz identifies which of the <strong>5 confidence blocks</strong> is holding you back the most — so you can finally stop guessing and start shifting.
+      </p>
+      <div class="block-grid">
+        <div class="block-chip"><div class="block-chip-emoji">🪞</div><div class="block-chip-label">The Inner Critic Block</div></div>
+        <div class="block-chip"><div class="block-chip-emoji">⚖️</div><div class="block-chip-label">The Comparison Block</div></div>
+        <div class="block-chip"><div class="block-chip-emoji">🎭</div><div class="block-chip-label">The People-Pleasing Block</div></div>
+        <div class="block-chip"><div class="block-chip-emoji">🌸</div><div class="block-chip-label">The Body Shame Block</div></div>
+        <div class="block-chip" style="grid-column: span 2;"><div class="block-chip-emoji">✨</div><div class="block-chip-label">The Visibility Block</div></div>
+      </div>
+      <button class="begin-btn" onclick="startQuiz()">Discover My Block ✦</button>
+    </div>
+    <div class="footer">
+      <div class="footer-name">Magnetic Confidence</div>
+      <div class="footer-sub">YOUR NEXT IDENTITY AWAITS</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  QUIZ PHASE                                 -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="phase-quiz" class="phase">
+  <div class="top-bar">
+    <div class="top-bar-icon">✦</div>
+    <div class="top-bar-title"><em>Magnetic Confidence</em> Quiz</div>
+  </div>
+  <div class="container">
+    <div class="progress-row">
+      <span id="progress-label">🪞 The Inner Critic Block</span>
+      <span id="progress-count">0/10</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+    <div class="card" id="question-card">
+      <div class="section-badge">
+        <span id="q-emoji">🪞</span>
+        <span class="section-badge-text" id="q-block-title">The Inner Critic Block</span>
+      </div>
+      <div class="section-desc" id="q-desc">How you talk to yourself in private moments</div>
+      <div class="q-counter" id="q-counter">Question 1 of 2</div>
+      <div class="q-text" id="q-text"></div>
+      <div id="q-options"></div>
+    </div>
+    <div class="footer"><div class="footer-name">Magnetic Confidence</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  RESULTS PHASE                              -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="phase-results" class="phase">
+  <div class="top-bar">
+    <div class="top-bar-icon">✦</div>
+    <div class="top-bar-title"><em>Magnetic Confidence</em> Quiz</div>
+  </div>
+  <div class="container">
+    <div class="page-header">
+      <div class="page-label">Your Results</div>
+      <h1 class="page-title">Your <em>Confidence Map</em></h1>
+    </div>
+    <div class="card">
+      <div class="results-ring">
+        <svg id="results-ring-svg" width="180" height="180">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3f2a4d"/>
+              <stop offset="100%" stop-color="#b7a6c8"/>
+            </linearGradient>
+          </defs>
+          <circle cx="90" cy="90" r="82" fill="none" stroke="#e8e1f0" stroke-width="7"/>
+          <circle id="ring-progress" cx="90" cy="90" r="82" fill="none"
+            stroke="url(#ringGrad)" stroke-width="7"
+            stroke-dasharray="515.2" stroke-dashoffset="515.2"
+            stroke-linecap="round"
+            transform="rotate(-90 90 90)"
+            style="transition: stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)"/>
+          <text id="ring-pct" x="50%" y="44%" text-anchor="middle" fill="#3f2a4d"
+            font-size="38" font-family="'Playfair Display', serif" font-weight="600">0%</text>
+          <text x="50%" y="60%" text-anchor="middle" fill="#b7a6c8"
+            font-size="9" font-family="'DM Sans', sans-serif" letter-spacing="3" font-weight="500">UNBLOCKED</text>
+        </svg>
+      </div>
+      <div id="block-bars"></div>
+    </div>
+
+    <div class="verdict-card">
+      <div class="verdict-label">✨ Your Reading</div>
+      <div class="verdict-title" id="verdict-title"></div>
+      <div class="verdict-body" id="verdict-body"></div>
+      <div class="verdict-cta" id="verdict-cta"></div>
+    </div>
+
+    <div class="shift-card">
+      <div class="shift-label">🌸 Your Shift Work</div>
+      <div class="shift-title" id="shift-title"></div>
+      <div class="shift-tagline" id="shift-tagline"></div>
+      <div id="shift-items"></div>
+    </div>
+
+    <a href="https://www.skool.com/magnetic-woman-academy-8148/about" target="_blank" rel="noopener noreferrer" class="cta-wrapper">
+      <div class="cta-bg">
+        <div class="cta-bubble" style="width:90px;height:90px;top:-20px;left:-20px;opacity:0.5;"></div>
+        <div class="cta-bubble" style="width:50px;height:50px;top:10px;right:30px;opacity:0.35;"></div>
+        <div class="cta-bubble" style="width:30px;height:30px;bottom:20px;left:40px;opacity:0.3;"></div>
+        <div class="cta-bubble" style="width:70px;height:70px;bottom:-15px;right:-10px;opacity:0.4;"></div>
+        <div class="cta-bubble" style="width:18px;height:18px;top:40px;left:45%;opacity:0.25;"></div>
+        <div class="cta-eyebrow">Ready to break through this block?</div>
+        <div class="cta-headline">Magnetic<br>Woman Circle</div>
+        <div class="cta-sub">Join the community. Do the work. Become her.</div>
+        <div class="cta-inner-btn">Join the Magnetic Woman Circle ✦</div>
+        <div class="cta-step">Step Into Magnetism</div>
+      </div>
+    </a>
+
+    <button class="restart-btn" onclick="restartQuiz()">Retake Quiz</button>
+    <div class="footer">
+      <div class="footer-name">Magnetic Confidence</div>
+      <div class="footer-sub">YOUR NEXT IDENTITY AWAITS</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BLOCKS = [
+    {
+      id: "inner_critic",
+      title: "The Inner Critic Block",
+      emoji: "🪞",
+      description: "How you talk to yourself in private moments",
+      tagline: "She overanalyzes herself and attacks her reflection.",
+      questions: [
+        {
+          q: "When you catch your reflection unexpectedly, what's your first instinct?",
+          options: [
+            "I immediately notice every flaw — it's automatic",
+            "I try to look away or fix something",
+            "I can see myself with some neutrality or kindness"
+          ]
+        },
+        {
+          q: "If a friend spoke to you the way you speak to yourself, what would you do?",
+          options: [
+            "I'd never allow it — but somehow I allow it from myself",
+            "I'd feel hurt but probably make excuses for them",
+            "Honestly, I'm learning to speak to myself with more grace"
+          ]
+        }
+      ]
+    },
+    {
+      id: "comparison",
+      title: "The Comparison Block",
+      emoji: "⚖️",
+      description: "How you measure your worth against other women",
+      tagline: "She measures her worth against other women.",
+      questions: [
+        {
+          q: "When you see a woman who's more successful, more beautiful, or more confident than you, how do you feel?",
+          options: [
+            "Instantly deflated — like I'm falling behind",
+            "A mix of inspired and inadequate",
+            "Genuinely happy for her — her shine doesn't dim mine"
+          ]
+        },
+        {
+          q: "Do you scroll social media and come away feeling better or worse about yourself?",
+          options: [
+            "Almost always worse — it's like a trap I keep walking into",
+            "Depends on the day, but it can really mess with my head",
+            "I've learned to curate my feed and it rarely affects me"
+          ]
+        }
+      ]
+    },
+    {
+      id: "people_pleasing",
+      title: "The People-Pleasing Block",
+      emoji: "🎭",
+      description: "How much you shrink to stay liked and approved",
+      tagline: "She shrinks to stay liked and approved.",
+      questions: [
+        {
+          q: "How often do you say yes when you mean no?",
+          options: [
+            "All the time — saying no feels dangerous or selfish",
+            "Regularly, especially with certain people",
+            "I've mostly learned to honor my boundaries without guilt"
+          ]
+        },
+        {
+          q: "When you're about to share your opinion or take up space, what happens inside?",
+          options: [
+            "I filter myself heavily — what will they think of me?",
+            "I share, but I'm always watching for disapproval",
+            "I trust myself to speak and let others receive it as they will"
+          ]
+        }
+      ]
+    },
+    {
+      id: "body_shame",
+      title: "The Body Shame Block",
+      emoji: "🌸",
+      description: "How you relate to your body and its presence",
+      tagline: "She feels trapped in judgment about her body.",
+      questions: [
+        {
+          q: "Do you put off living your fullest life until your body looks a certain way?",
+          options: [
+            "Yes — there are things I'm waiting to do until I'm 'ready'",
+            "Sometimes — I catch myself making my joy conditional",
+            "No — I've learned to live fully in the body I have now"
+          ]
+        },
+        {
+          q: "When you think about being seen — photographed, on video, in a crowd — what comes up?",
+          options: [
+            "Dread — I avoid it whenever I can",
+            "Anxiety that I manage, but it's always there",
+            "I can show up and be seen without my body being the main story"
+          ]
+        }
+      ]
+    },
+    {
+      id: "visibility",
+      title: "The Visibility Block",
+      emoji: "✨",
+      description: "How safe you feel being truly seen",
+      tagline: "She wants to be seen but fears being judged.",
+      questions: [
+        {
+          q: "When you imagine sharing something real and vulnerable about yourself publicly, what happens?",
+          options: [
+            "Fear floods in — what if they judge me, misunderstand me, or reject me?",
+            "I want to, but I water it down to stay safe",
+            "I feel nervous but I do it anyway — visibility is a practice for me"
+          ]
+        },
+        {
+          q: "What's your relationship with receiving compliments, attention, or praise?",
+          options: [
+            "I deflect, minimize, or feel like I don't deserve it",
+            "I appreciate it but often wonder if they really mean it",
+            "I can receive it with gratitude — I'm learning to let it land"
+          ]
+        }
+      ]
+    }
+  ];
+
+  const SHIFTS = {
+    inner_critic: [
+      "Start a 'mirror practice' — look at yourself and find one thing to appreciate, daily",
+      "When your inner critic speaks, ask: 'Whose voice is this really?'",
+      "Journal the story you've been telling about yourself — then write the truer version"
+    ],
+    comparison: [
+      "Audit your feed: unfollow accounts that consistently make you feel small",
+      "Practice 'her win is not my loss' — celebrate one woman publicly this week",
+      "Define your own metrics of success — not borrowed ones from someone else's life"
+    ],
+    people_pleasing: [
+      "Practice one small no this week — and don't over-explain it",
+      "Notice the moment you're about to shrink and pause. Ask: what do I actually want?",
+      "Identify the relationship where you people-please most — and get curious about why"
+    ],
+    body_shame: [
+      "Move your body in a way that feels joyful, not punishing — for 10 minutes today",
+      "Write a letter to your body thanking it for what it does, not what it looks like",
+      "Do one thing you've been postponing until your body 'looks right' — do it now"
+    ],
+    visibility: [
+      "Share one real, unfiltered thought publicly this week — no watering it down",
+      "The next time someone compliments you, just say 'thank you' and let it land",
+      "Identify one way you've been making yourself smaller — and choose differently tomorrow"
+    ]
+  };
+
+  // ── STATE ──
+  let currentBlock = 0;
+  let currentQuestion = 0;
+  let answers = {};
+  let animating = false;
+
+  const totalQuestions = BLOCKS.reduce((a, b) => a + b.questions.length, 0);
+
+  function showPhase(name) {
+    document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
+    document.getElementById('phase-' + name).classList.add('active');
+    window.scrollTo(0, 0);
   }
 
-  if (phase === "quiz") {
-    return (
-      <>
-        <style>{styles}</style>
-        <div className="top-bar">
-          <div className="top-bar-icon">✦</div>
-          <div className="top-bar-title"><em>Magnetic Confidence</em> Quiz</div>
-        </div>
-        <div className="container">
-          <div className="progress-row">
-            <span>{block.emoji} {block.title}</span>
-            <span>{answeredCount}/{totalQuestions}</span>
-          </div>
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${(answeredCount / totalQuestions) * 100}%` }} />
-          </div>
-          <div className="card" key={`${currentBlock}-${currentQuestion}`}>
-            <div className="section-badge">
-              <span>{block.emoji}</span>
-              <span className="section-badge-text">{block.title}</span>
-            </div>
-            <div className="section-desc">{block.description}</div>
-            <div className="q-counter">Question {currentQuestion + 1} of {block.questions.length}</div>
-            <div className="q-text">{question.q}</div>
-            {question.options.map((opt, idx) => (
-              <button
-                key={idx} className="option-btn"
-                onClick={() => handleAnswer(currentBlock, currentQuestion, idx)}
-                style={animating ? { pointerEvents: "none", opacity: 0.5 } : {}}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-          <div className="footer"><div className="footer-name">Magnetic Confidence</div></div>
-        </div>
-      </>
-    );
+  function startQuiz() {
+    currentBlock = 0;
+    currentQuestion = 0;
+    answers = {};
+    renderQuestion();
+    showPhase('quiz');
   }
 
-  if (phase === "results") {
-    const { blockScores, percent } = calcScores();
-    const verdict = getVerdict(percent);
-    const primaryBlock = getPrimaryBlock(blockScores);
-    const shifts = getShifts(primaryBlock.id);
-
-    return (
-      <>
-        <style>{styles}</style>
-        <div className="top-bar">
-          <div className="top-bar-icon">✦</div>
-          <div className="top-bar-title"><em>Magnetic Confidence</em> Quiz</div>
-        </div>
-        <div className="container">
-          <div className="page-header">
-            <div className="page-label">Your Results</div>
-            <h1 className="page-title">Your <em>Confidence Map</em></h1>
-          </div>
-          <div className="card">
-            <div className="results-ring">
-              <ProgressRing percent={showResults ? percent : 0} />
-            </div>
-            {blockScores.map((b) => (
-              <BlockBar key={b.id} label={b.title} emoji={b.emoji} score={b.score} max={b.max} />
-            ))}
-          </div>
-          <div className="verdict-card">
-            <div className="verdict-label">✨ Your Reading</div>
-            <div className="verdict-title">{verdict.title}</div>
-            <div className="verdict-body">{verdict.body}</div>
-            <div className="verdict-cta">{verdict.cta}</div>
-          </div>
-          <div className="shift-card">
-            <div className="shift-label">🌸 Your Shift Work</div>
-            <div className="shift-title">Your Primary Block: {primaryBlock.emoji} {primaryBlock.title}</div>
-            <p style={{ fontSize: 13, color: "#7a5e8f", marginBottom: 14, fontStyle: "italic", fontFamily: "'Playfair Display', serif" }}>
-              "{primaryBlock.tagline}"
-            </p>
-            {shifts.map((shift, i) => (
-              <div key={i} className="shift-item">
-                <span className="shift-num">{i + 1}</span>
-                <span>{shift}</span>
-              </div>
-            ))}
-          </div>
-          <a href="https://www.skool.com/magnetic-woman-academy-8148/about" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block"}} className="cta-wrapper">
-            <div className="cta-bg">
-              {/* Decorative bubbles */}
-              <span className="cta-bubble" style={{width:90,height:90,top:-20,left:-20,opacity:0.5}} />
-              <span className="cta-bubble" style={{width:50,height:50,top:10,right:30,opacity:0.35}} />
-              <span className="cta-bubble" style={{width:30,height:30,bottom:20,left:40,opacity:0.3}} />
-              <span className="cta-bubble" style={{width:70,height:70,bottom:-15,right:-10,opacity:0.4}} />
-              <span className="cta-bubble" style={{width:18,height:18,top:40,left:'45%',opacity:0.25}} />
-              <div className="cta-eyebrow">Ready to break through this block?</div>
-              <div className="cta-headline">Magnetic<br />Woman Circle</div>
-              <div style={{fontSize:13,color:"rgba(246,241,235,0.75)",fontFamily:"'DM Sans',sans-serif",letterSpacing:"1px",marginBottom:20}}>Join the community. Do the work. Become her.</div>
-              <span className="cta-inner-btn">Join the Magnetic Woman Circle ✦</span>
-              <div style={{marginTop:14,fontSize:11,color:"rgba(246,241,235,0.5)",fontFamily:"'DM Sans',sans-serif",letterSpacing:"2px",textTransform:"uppercase"}}>Step Into Magnetism</div>
-            </div>
-          </a>
-          <button className="restart-btn" onClick={() => {
-            setPhase("welcome"); setCurrentBlock(0); setCurrentQuestion(0);
-            setAnswers({}); setShowResults(false);
-          }}>Retake Quiz</button>
-          <div className="footer">
-            <div className="footer-name">Magnetic Confidence</div>
-            <div className="footer-sub">YOUR NEXT IDENTITY AWAITS</div>
-          </div>
-        </div>
-      </>
-    );
+  function restartQuiz() {
+    startQuiz();
+    showPhase('welcome');
+    setTimeout(() => showPhase('quiz'), 10);
   }
 
-  return null;
-}
+  function renderQuestion() {
+    const block = BLOCKS[currentBlock];
+    const q = block.questions[currentQuestion];
+    const answered = Object.keys(answers).length;
+
+    document.getElementById('progress-label').textContent = block.emoji + ' ' + block.title;
+    document.getElementById('progress-count').textContent = answered + '/' + totalQuestions;
+    document.getElementById('progress-fill').style.width = ((answered / totalQuestions) * 100) + '%';
+
+    document.getElementById('q-emoji').textContent = block.emoji;
+    document.getElementById('q-block-title').textContent = block.title;
+    document.getElementById('q-desc').textContent = block.description;
+    document.getElementById('q-counter').textContent =
+      'Question ' + (currentQuestion + 1) + ' of ' + block.questions.length;
+    document.getElementById('q-text').textContent = q.q;
+
+    const optionsEl = document.getElementById('q-options');
+    optionsEl.innerHTML = '';
+    q.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => handleAnswer(idx));
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(optionIdx) {
+    if (animating) return;
+    const key = currentBlock + '-' + currentQuestion;
+    answers[key] = optionIdx;
+    animating = true;
+
+    document.querySelectorAll('.option-btn').forEach(b => b.classList.add('disabled'));
+
+    setTimeout(() => {
+      animating = false;
+      const block = BLOCKS[currentBlock];
+      if (currentQuestion < block.questions.length - 1) {
+        currentQuestion++;
+        renderQuestion();
+      } else if (currentBlock < BLOCKS.length - 1) {
+        currentBlock++;
+        currentQuestion = 0;
+        renderQuestion();
+      } else {
+        showResults();
+      }
+    }, 350);
+  }
+
+  function showResults() {
+    const SCORE_MAP = [0, 1, 2];
+
+    const blockScores = BLOCKS.map((block, bIdx) => {
+      let total = 0;
+      block.questions.forEach((_, qIdx) => {
+        total += SCORE_MAP[answers[bIdx + '-' + qIdx] ?? 0];
+      });
+      return { ...block, score: total, max: block.questions.length * 2 };
+    });
+
+    const totalScore = blockScores.reduce((a, s) => a + s.score, 0);
+    const totalMax   = blockScores.reduce((a, s) => a + s.max, 0);
+    const percent    = Math.round((totalScore / totalMax) * 100);
+
+    // Ring
+    const circ = 2 * Math.PI * 82;
+    const offset = circ - (percent / 100) * circ;
+    setTimeout(() => {
+      document.getElementById('ring-progress').style.strokeDashoffset = offset;
+      document.getElementById('ring-pct').textContent = percent + '%';
+    }, 150);
+
+    // Block bars
+    const barsEl = document.getElementById('block-bars');
+    barsEl.innerHTML = '';
+    blockScores.forEach(b => {
+      const pct = Math.round((b.score / b.max) * 100);
+      let label, color, bg;
+      if (pct >= 70) { label = 'Mostly Unblocked'; color = '#3f2a4d'; bg = '#ede8f4'; }
+      else if (pct >= 40) { label = 'Partially Blocked'; color = '#7a5e8f'; bg = '#e8e1f0'; }
+      else { label = 'Strong Block'; color = '#5c3d6e'; bg = '#d9cfe8'; }
+
+      barsEl.innerHTML += `
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-family:'DM Sans',sans-serif;font-size:14px;color:#3f2a4d;font-weight:500;">${b.emoji} ${b.title}</span>
+            <span style="font-family:'DM Sans',sans-serif;font-size:11px;color:${color};background:${bg};padding:3px 10px;border-radius:20px;font-weight:500;">${label}</span>
+          </div>
+          <div style="height:6px;background:#e8e1f0;border-radius:20px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,${color},${color}99);border-radius:20px;transition:width 1s cubic-bezier(0.4,0,0.2,1);"></div>
+          </div>
+        </div>`;
+    });
+
+    // Verdict
+    let verdict;
+    if (percent >= 75) {
+      verdict = {
+        title: "She's Emerging — Your Confidence Is Awakening ✦",
+        body: "You've done real inner work and it shows. Most of your blocks have lost their grip. What's left is refinement — not rebuilding. You're already magnetic. You're learning to trust that it's safe to be fully seen.",
+        cta: "Your next step → Stop dimming yourself. The world is ready for the unfiltered version of you."
+      };
+    } else if (percent >= 45) {
+      verdict = {
+        title: "She's Stirring — You're Closer Than You Know ◇",
+        body: "You have real awareness and glimpses of your power, but there are one or two blocks that keep pulling you back before you can fully land in your confidence. You don't need to start over — you need to name the block and move through it.",
+        cta: "Your next step → Identify your primary block and do the inner work to shift it. You're almost there."
+      };
+    } else {
+      verdict = {
+        title: "She's Waiting — Your Magnetism Is Buried, Not Gone ✧",
+        body: "Your confidence isn't missing — it's buried under layers of old stories, other people's voices, and protective patterns that once kept you safe. The work ahead isn't about becoming someone new. It's about coming home to who you already are.",
+        cta: "Your next step → Begin with the block that's loudest and work inward. Your identity is ready to shift."
+      };
+    }
+    document.getElementById('verdict-title').textContent = verdict.title;
+    document.getElementById('verdict-body').textContent  = verdict.body;
+    document.getElementById('verdict-cta').textContent   = verdict.cta;
+
+    // Primary block (lowest score ratio)
+    const primary = [...blockScores].sort((a, b) => (a.score / a.max) - (b.score / b.max))[0];
+    document.getElementById('shift-title').textContent   = 'Your Primary Block: ' + primary.emoji + ' ' + primary.title;
+    document.getElementById('shift-tagline').textContent = '"' + primary.tagline + '"';
+
+    const shiftsEl = document.getElementById('shift-items');
+    shiftsEl.innerHTML = '';
+    (SHIFTS[primary.id] || []).forEach((s, i) => {
+      shiftsEl.innerHTML += `
+        <div class="shift-item">
+          <span class="shift-num">${i + 1}</span>
+          <span>${s}</span>
+        </div>`;
+    });
+
+    showPhase('results');
+  }
+</script>
+</body>
+</html>
